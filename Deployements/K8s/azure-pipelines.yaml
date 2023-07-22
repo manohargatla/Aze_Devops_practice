@@ -1,0 +1,36 @@
+
+trigger:
+  - master
+stages:
+  - stage: buildstage
+    displayName: nop build stage
+    pool:
+      name: Azure Pipelines
+      vmImage: ubuntu-22.04
+    jobs:
+      - job: buildjob
+        displayName: Docker build
+        steps:
+          - task: Docker@2
+            displayName: Image build and Push
+            inputs:
+              containerRegistry: Dockerhub
+              command: buildAndPush
+              Dockerfile: '**/Dockerfile'
+              repository: 'manugatla/nop'
+              tags: nop1
+
+## Deployment stage
+  - stage: Deployment
+    displayName: Deploy stage
+    pool: Default
+    jobs:
+      - job: deployjob
+        steps:
+
+        - bash: kubectl apply -f nopdeploy.yaml
+          displayName: k8s deployement
+
+        - bash: kubectl apply -f nopdeploy.yaml
+          displayName: k8s deployement
+

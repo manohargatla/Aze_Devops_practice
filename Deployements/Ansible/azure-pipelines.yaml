@@ -1,0 +1,50 @@
+
+trigger:
+  - master
+stages:
+  - stage: buildstage
+    displayName: nop build stage
+    pool:
+      name: Azure Pipelines
+      vmImage: ubuntu-22.04
+    jobs:
+      - job: buildjob
+        displayName: build nop package
+        steps:
+          - task: DotNetCoreCLI@2
+            inputs:
+              command: build
+              projects: '**/*.sln'
+              configuration: $(buildConfiguration) 
+
+          - task: DotNetCoreCLI@2
+            inputs:
+              command: publish
+              publishWebProjects: True
+              arguments: '--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+              zipAfterPublish: True
+            
+            # this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your build.
+          - task: PublishPipelineArtifact@1
+            inputs:
+              targetPath: '$(Build.ArtifactStagingDirectory)' 
+              artifactName: 'nopcommerce'
+
+## Deployment stage
+  - stage: Deployment
+    displayName: Deploy stage
+    pool: Default
+    jobs:
+      - job: deployjob
+        steps:
+        - task: DownloadBuildArtifacts@1
+          displayName: Download Artifacts
+          inputs:
+            artifactName: 'nopcommerce'
+            downloadPath: /home/manu/
+  
+        - bash: ansible -i hosts -m ping all
+          displayName: host checking
+          
+        - bash: ansible-playbook -i hosts ansible_nop.yaml
+          displayName: run playbook
